@@ -94,6 +94,7 @@ def get_model_answers(
         cpu_offloading=False,
         debug=False,
     )
+    model.bfloat16()
 
     for question in tqdm(questions):
         if question["category"] in temperature_config:
@@ -187,7 +188,7 @@ def get_model_answers(
                 "choices": choices,
                 "tstamp": time.time(),
             }
-            fout.write(json.dumps(ans_json) + "\n")
+            fout.write(json.dumps(ans_json, ensure_ascii=False) + "\n")
 
 
 def reorg_answer_file(answer_file):
