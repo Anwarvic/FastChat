@@ -626,6 +626,28 @@ def remove_parent_directory_name(model_path):
 
 peft_model_cache = {}
 
+class JAISAdapter(BaseModelAdapter):
+    def match(self, model_path: str):
+        return model_path.count('/') >= 2 #i.e., local path
+
+    def load_model(self, model_path: str, from_pretrained_kwargs: dict):
+        tokenizer = AutoTokenizer.from_pretrained(
+                model_path,
+                use_fast=False,
+                padding_side="left",
+        )
+
+        if "torch_dtype" in from_pretrained_kwargs:
+            from_pretrained_kwargs.pop("torch_dtype")
+
+        print(from_pretrained_kwargs)
+
+        model = AutoModelForCausalLM.from_pretrained(
+            model_path,
+            **from_pretrained_kwargs
+        )
+        return model, tokenizer
+    
 
 class PeftModelAdapter:
     """Loads any "peft" model and it's base model."""
@@ -2502,6 +2524,7 @@ class NoSystemAdapter(BaseModelAdapter):
 
 # Note: the registration order matters.
 # The one registered earlier has a higher matching priority.
+register_model_adapter(JAISAdapter)
 register_model_adapter(PeftModelAdapter)
 register_model_adapter(StableVicunaAdapter)
 register_model_adapter(VicunaAdapter)
