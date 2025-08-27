@@ -2499,9 +2499,22 @@ class NoSystemAdapter(BaseModelAdapter):
     def get_default_conv_template(self, model_path: str) -> Conversation:
         return get_conv_template("api_based_default")
 
+class VicunaArabicAdapter(BaseModelAdapter):
+    """The model adapter for Vicuna-Arabic"""
+
+    def match(self, model_path: str):
+        keyword_list = ["allam", "8B_7a_wd0.2_8b_bs512_d2z_with_dpo_set3"]
+        for keyword in keyword_list:
+            if keyword.lower() in model_path.lower():
+                return True
+        return False
+
+    def get_default_conv_template(self, model_path: str) -> Conversation:
+        return get_conv_template("raw")
 
 # Note: the registration order matters.
 # The one registered earlier has a higher matching priority.
+register_model_adapter(VicunaArabicAdapter)
 register_model_adapter(PeftModelAdapter)
 register_model_adapter(StableVicunaAdapter)
 register_model_adapter(VicunaAdapter)
