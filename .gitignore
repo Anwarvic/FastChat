@@ -5,6 +5,12 @@ __pycache__
 dist
 .venv
 
+.env
+testing_boda
+model_answer
+model_judgment
+
+
 # Log
 *.log
 *.log.*
