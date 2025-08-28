@@ -397,8 +397,17 @@ def load_model(
 
 def get_conversation_template(model_path: str) -> Conversation:
     """Get the default conversation template."""
-    adapter = get_model_adapter(model_path)
-    return adapter.get_default_conv_template(model_path)
+
+
+    is_vacuna_arabic = os.environ.get("VICUNA_ARABIC", "false")
+    if is_vacuna_arabic:
+        print("Using Arabic Vicuna Conversation Template (Raw Template)")
+        # Get the Jais conv template
+        adapter = get_model_adapter('////')
+        return adapter.get_default_conv_template("")
+    else:
+        adapter = get_model_adapter(model_path)
+        return adapter.get_default_conv_template(model_path)
 
 
 def get_generate_stream_function(model: torch.nn.Module, model_path: str):
@@ -647,6 +656,9 @@ class JAISAdapter(BaseModelAdapter):
             **from_pretrained_kwargs
         )
         return model, tokenizer
+    
+    def get_default_conv_template(self, model_path: str) -> Conversation:
+        return get_conv_template("raw")
     
 
 class PeftModelAdapter:
