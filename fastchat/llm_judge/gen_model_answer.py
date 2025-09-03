@@ -187,7 +187,7 @@ def get_model_answers(
                 "choices": choices,
                 "tstamp": time.time(),
             }
-            fout.write(json.dumps(ans_json) + "\n")
+            fout.write(json.dumps(ans_json, ensure_ascii=False) + "\n") 
 
 
 def reorg_answer_file(answer_file):
