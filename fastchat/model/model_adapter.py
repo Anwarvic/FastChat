@@ -239,9 +239,9 @@ def load_model(
         if num_gpus != 1:
             kwargs["device_map"] = "auto"
             if max_gpu_memory is None:
-                kwargs[
-                    "device_map"
-                ] = "sequential"  # This is important for not the same VRAM sizes
+                kwargs["device_map"] = (
+                    "sequential"  # This is important for not the same VRAM sizes
+                )
                 available_gpu_memory = get_gpu_memory(num_gpus)
                 kwargs["max_memory"] = {
                     i: str(int(available_gpu_memory[i] * 0.85)) + "GiB"
@@ -398,12 +398,11 @@ def load_model(
 def get_conversation_template(model_path: str) -> Conversation:
     """Get the default conversation template."""
 
-
     is_vacuna_arabic = os.environ.get("VICUNA_ARABIC", "false")
     if is_vacuna_arabic:
         print("Using Arabic Vicuna Conversation Template (Raw Template)")
         # Get the Jais conv template
-        adapter = get_model_adapter('////')
+        adapter = get_model_adapter("////")
         return adapter.get_default_conv_template("")
     else:
         adapter = get_model_adapter(model_path)
@@ -635,15 +634,16 @@ def remove_parent_directory_name(model_path):
 
 peft_model_cache = {}
 
+
 class JAISAdapter(BaseModelAdapter):
     def match(self, model_path: str):
-        return model_path.count('/') >= 2 #i.e., local path
+        return model_path.count("/") >= 2  # i.e., local path
 
     def load_model(self, model_path: str, from_pretrained_kwargs: dict):
         tokenizer = AutoTokenizer.from_pretrained(
-                model_path,
-                use_fast=False,
-                padding_side="left",
+            model_path,
+            use_fast=False,
+            padding_side="left",
         )
 
         if "torch_dtype" in from_pretrained_kwargs:
@@ -652,14 +652,13 @@ class JAISAdapter(BaseModelAdapter):
         print(from_pretrained_kwargs)
 
         model = AutoModelForCausalLM.from_pretrained(
-            model_path,
-            **from_pretrained_kwargs
+            model_path, **from_pretrained_kwargs
         )
         return model, tokenizer
-    
+
     def get_default_conv_template(self, model_path: str) -> Conversation:
         return get_conv_template("raw")
-    
+
 
 class PeftModelAdapter:
     """Loads any "peft" model and it's base model."""
@@ -2534,9 +2533,27 @@ class NoSystemAdapter(BaseModelAdapter):
         return get_conv_template("api_based_default")
 
 
+class VicunaArabicAdapter(BaseModelAdapter):
+    """The model adapter for Vicuna-Arabic"""
+
+    def match(self, model_path: str):
+        keyword_list = [
+            "model_1",
+            "model_2",
+        ]  # TODO: Add model names here which need to compared for vicuna Arabic
+        for keyword in keyword_list:
+            if keyword.lower() in model_path.lower():
+                return True
+        return False
+
+    def get_default_conv_template(self, model_path: str) -> Conversation:
+        return get_conv_template("raw")
+
+
 # Note: the registration order matters.
 # The one registered earlier has a higher matching priority.
 register_model_adapter(JAISAdapter)
+register_model_adapter(VicunaArabicAdapter)
 register_model_adapter(PeftModelAdapter)
 register_model_adapter(StableVicunaAdapter)
 register_model_adapter(VicunaAdapter)
