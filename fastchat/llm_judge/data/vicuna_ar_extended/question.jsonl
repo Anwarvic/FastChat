@@ -131,7 +131,7 @@
 {"question_id":131,"category":"scientific","sub-category":"Biology","turns":["ما تأثير عوامل الطقس في حجم الجماعة الحيوية؟"]}
 {"question_id":132,"category":"scientific","sub-category":"Chemistry","turns":["من هو مؤسس النظرية الذرية الحديثة؟"]}
 {"question_id":133,"category":"scientific","sub-category":"Chemistry","turns":["ما هي الذرة؟"]}
-{"question_id":134,"category":"scientific","sub-category":"Chemistry","turns":[""]}
+{"question_id":134,"category":"scientific","sub-category":"Chemistry","turns":["ما أوجه الاختلاف بين الماس والجرافيت من حيث ترتيب الذرات؟"]}
 {"question_id":135,"category":"scientific","sub-category":"Chemistry","turns":["ما عدد البروتونات والإلكترونات في الذرات التالية: الليثيوم، الكربون، الفسفور؟"]}
 {"question_id":136,"category":"scientific","sub-category":"Chemistry","turns":["ما نواتج تفاعل حمض الكبريتيك مع محلول هيدروكسيد الكالسيوم؟"]}
 {"question_id":137,"category":"scientific","sub-category":"Geography","turns":["كيف يتم رصد الزلزال؟"]}
