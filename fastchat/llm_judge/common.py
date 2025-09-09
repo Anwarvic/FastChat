@@ -13,11 +13,13 @@ from typing import Optional
 
 import openai
 import anthropic
+from google import genai
 
 from fastchat.model.model_adapter import (
     get_conversation_template,
     ANTHROPIC_MODEL_LIST,
     OPENAI_MODEL_LIST,
+    GEMINI_MODEL_LIST,
 )
 
 # API setting constants
@@ -169,6 +171,10 @@ def run_judge_single(question, answer, judge, ref_answer, multi_turn=False):
         judgment = chat_completion_anthropic(
             model, conv, temperature=0, max_tokens=1024
         )
+    elif model in GEMINI_MODEL_LIST:
+        judgment = chat_completion_gemini(
+            model, conv, temperature=0, max_tokens=2048
+        )
     else:
         raise ValueError(f"Invalid judge model name: {model}")
 
@@ -275,6 +281,11 @@ def run_judge_pair(question, answer_a, answer_b, judge, ref_answer, multi_turn=F
             conv.messages[0][1] = user_prompt
         judgment = chat_completion_anthropic(
             model, conv, temperature=0, max_tokens=1024
+        )
+    elif model in GEMINI_MODEL_LIST:
+        conv.set_system_message(system_prompt)
+        judgment = chat_completion_gemini(
+            model, conv, temperature=0, max_tokens=2048
         )
     else:
         raise ValueError(f"Invalid judge model name: {model}")
@@ -422,6 +433,37 @@ def chat_completion_openai(model, conv, temperature, max_tokens, api_dict=None):
             output = response["choices"][0]["message"]["content"]
             break
         except openai.error.OpenAIError as e:
+            print(type(e), e)
+            time.sleep(API_RETRY_SLEEP)
+
+    return output
+
+
+def chat_completion_gemini(model, conv, temperature, max_tokens, api_dict=None):
+    if api_dict is not None and "api_key" in api_dict:
+        api_key = api_dict["api_key"]
+    else:
+        api_key = os.environ["GEMINI_API_KEY"]
+    # sanity check
+    if not api_key:
+        raise ValueError("`GEMINI_API_KEY` is not set in the environment variables")
+    # create client
+    client = genai.Client(api_key=api_key)
+    output = API_ERROR_OUTPUT
+    for _ in range(API_MAX_RETRY):
+        try:
+            prompt = conv.get_prompt()
+            response = client.models.generate_content(
+                model=model,
+                contents=prompt,
+                config=genai.types.GenerateContentConfig(
+                    temperature=temperature,
+                    maxOutputTokens=max_tokens,
+                )
+            )
+            output = response.text
+            break
+        except Exception as e:
             print(type(e), e)
             time.sleep(API_RETRY_SLEEP)
 
