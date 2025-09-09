@@ -461,8 +461,9 @@ def chat_completion_gemini(model, conv, temperature, max_tokens, api_dict=None):
                     maxOutputTokens=max_tokens,
                 )
             )
-            output = response.text
-            break
+            if response.text:
+                output = response.text
+                break
         except Exception as e:
             print(type(e), e)
             time.sleep(API_RETRY_SLEEP)
