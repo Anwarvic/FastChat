@@ -32,6 +32,7 @@ def run_eval(
     max_gpu_memory,
     dtype,
     revision,
+    apply_chat_template=False,
 ):
     questions = load_questions(question_file, question_begin, question_end)
     # random shuffle the questions to balance the loading
@@ -63,6 +64,7 @@ def run_eval(
                 max_gpu_memory,
                 dtype=dtype,
                 revision=revision,
+                apply_chat_template=apply_chat_template,
             )
         )
 
@@ -82,6 +84,7 @@ def get_model_answers(
     max_gpu_memory,
     dtype,
     revision,
+    apply_chat_template=False,
 ):
     model, tokenizer = load_model(
         model_path,
@@ -112,7 +115,14 @@ def get_model_answers(
                 conv.append_message(conv.roles[0], qs)
                 conv.append_message(conv.roles[1], None)
                 prompt = conv.get_prompt()
-                input_ids = tokenizer([prompt]).input_ids
+                if apply_chat_template and tokenizer.apply_chat_template is not None:
+                    input_ids = [
+                        tokenizer.apply_chat_template(
+                            [{"role": "user", "content": prompt}]
+                        )
+                    ]
+                else:
+                    input_ids = tokenizer([prompt]).input_ids
 
                 if temperature < 1e-4:
                     do_sample = False
@@ -270,6 +280,11 @@ if __name__ == "__main__":
         default="main",
         help="The model revision to load.",
     )
+    parser.add_argument(
+        "--apply-chat-template",
+        action="store_true",
+        help="Whether to apply chat template if available.",
+    )
 
     args = parser.parse_args()
 
@@ -300,6 +315,7 @@ if __name__ == "__main__":
         max_gpu_memory=args.max_gpu_memory,
         dtype=str_to_torch_dtype(args.dtype),
         revision=args.revision,
+        apply_chat_template=args.apply_chat_template,
     )
 
     reorg_answer_file(answer_file)
