@@ -93,6 +93,17 @@ OPENAI_MODEL_LIST = (
     "o1-mini",
 )
 
+GEMINI_MODEL_LIST = (
+    "gemini-2.5-pro",
+    "gemini-2.5-flash",
+    "gemini-2.5-flash-lite",
+    "gemini-2.0-flash",
+    "gemini-2.0-flash-lite",
+    # "gemini-1.5-flash", #! Deprecated
+    # "gemini-1.5-flash-8b", #! Deprecated
+    # "gemini-1.5-pro", #! Deprecated
+)
+
 
 class BaseModelAdapter:
     """The base and the default model adapter."""
@@ -2504,11 +2515,34 @@ class VicunaArabicAdapter(BaseModelAdapter):
     """The model adapter for Vicuna-Arabic"""
 
     def match(self, model_path: str):
-        keyword_list = ["model_1", "model_2"] # TODO: Add model names here which need to compared for vicuna Arabic
+        keyword_list = [
+            "20250624_8b_new_ift_exp8_3epoch",
+            "20250804_8b_LC_all_exp2p2_6",
+            "ALLaM-AI/ALLaM-7B-Instruct-preview"
+        ]
         for keyword in keyword_list:
             if keyword.lower() in model_path.lower():
                 return True
         return False
+
+    def load_model(self, model_path: str, from_pretrained_kwargs: dict):
+        # JAIS needs a different loading mechanism on our servers
+        if model_path.count('/') >= 2: # i.e. local path
+            tokenizer = AutoTokenizer.from_pretrained(
+                    model_path,
+                    use_fast=False,
+                    padding_side="left",
+            )
+
+            if "torch_dtype" in from_pretrained_kwargs:
+                from_pretrained_kwargs.pop("torch_dtype")
+            model = AutoModelForCausalLM.from_pretrained(
+                model_path,
+                **from_pretrained_kwargs
+            )
+            return model, tokenizer
+        else:
+            return super().load_model(model_path, from_pretrained_kwargs)
 
     def get_default_conv_template(self, model_path: str) -> Conversation:
         return get_conv_template("raw")
