@@ -172,9 +172,7 @@ def run_judge_single(question, answer, judge, ref_answer, multi_turn=False):
             model, conv, temperature=0, max_tokens=1024
         )
     elif model in GEMINI_MODEL_LIST:
-        judgment = chat_completion_gemini(
-            model, conv, temperature=0, max_tokens=2048
-        )
+        judgment = chat_completion_gemini(model, conv, temperature=0, max_tokens=2048)
     else:
         raise ValueError(f"Invalid judge model name: {model}")
 
@@ -284,9 +282,7 @@ def run_judge_pair(question, answer_a, answer_b, judge, ref_answer, multi_turn=F
         )
     elif model in GEMINI_MODEL_LIST:
         conv.set_system_message(system_prompt)
-        judgment = chat_completion_gemini(
-            model, conv, temperature=0, max_tokens=2048
-        )
+        judgment = chat_completion_gemini(model, conv, temperature=0, max_tokens=2048)
     else:
         raise ValueError(f"Invalid judge model name: {model}")
 
@@ -459,7 +455,7 @@ def chat_completion_gemini(model, conv, temperature, max_tokens, api_dict=None):
                 config=genai.types.GenerateContentConfig(
                     temperature=temperature,
                     maxOutputTokens=max_tokens,
-                )
+                ),
             )
             if response.text:
                 output = response.text
@@ -519,16 +515,49 @@ def chat_completion_anthropic(model, conv, temperature, max_tokens, api_dict=Non
     output = API_ERROR_OUTPUT
     for _ in range(API_MAX_RETRY):
         try:
-            c = anthropic.Anthropic(api_key=api_key)
-            prompt = conv.get_prompt()
-            response = c.completions.create(
-                model=model,
-                prompt=prompt,
-                stop_sequences=[anthropic.HUMAN_PROMPT],
-                max_tokens_to_sample=max_tokens,
-                temperature=temperature,
+            client = anthropic.Anthropic(api_key=api_key)
+
+            # Extract system message if it exists
+            system_prompt = conv.system_template.format(
+                system_message=conv.system_message
             )
-            output = response.completion
+
+            # Build messages array for the Messages API
+            messages = []
+            for role, message in conv.messages:
+                if message:
+                    # Handle tuple format (message, images)
+                    if type(message) is tuple:
+                        message, images = message
+
+                    # Convert role to Anthropic format (user/assistant)
+                    if role.lower() in ["user", "human"]:
+                        api_role = "user"
+                    elif role.lower() in ["assistant", "ai"]:
+                        api_role = "assistant"
+                    else:
+                        # Default to user for unknown roles
+                        api_role = "user"
+
+                    messages.append({"role": api_role, "content": message})
+
+            # Create the API call parameters
+            api_params = {
+                "model": model,
+                "max_tokens": max_tokens,
+                "temperature": temperature,
+                "messages": messages,
+            }
+
+            # Add system prompt if it exists and is not empty
+            if system_prompt.strip():
+                api_params["system"] = system_prompt.strip()
+
+            print(f"Messages API call with {len(messages)} messages")
+            response = client.messages.create(**api_params)
+
+            # Extract the text content from the response
+            output = response.content[0].text
             break
         except anthropic.APIError as e:
             print(type(e), e)

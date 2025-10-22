@@ -65,6 +65,7 @@ ANTHROPIC_MODEL_LIST = (
     "claude-3-opus-20240229",
     "claude-instant-1",
     "claude-instant-1.2",
+    "claude-sonnet-4-5",
 )
 
 OPENAI_MODEL_LIST = (
@@ -250,9 +251,9 @@ def load_model(
         if num_gpus != 1:
             kwargs["device_map"] = "auto"
             if max_gpu_memory is None:
-                kwargs[
-                    "device_map"
-                ] = "sequential"  # This is important for not the same VRAM sizes
+                kwargs["device_map"] = (
+                    "sequential"  # This is important for not the same VRAM sizes
+                )
                 available_gpu_memory = get_gpu_memory(num_gpus)
                 kwargs["max_memory"] = {
                     i: str(int(available_gpu_memory[i] * 0.85)) + "GiB"
@@ -1199,6 +1200,8 @@ class ClaudeAdapter(BaseModelAdapter):
             return get_conv_template("claude-3-5-sonnet-20240620-v2")
         if "claude-3-opus" in model_path:
             return get_conv_template("claude-3-opus-20240229")
+        if "claude-sonnet-4-5":
+            return get_conv_template("claude-3-5-sonnet-20240620-v2")
         return get_conv_template("claude")
 
 
@@ -2518,7 +2521,7 @@ class VicunaArabicAdapter(BaseModelAdapter):
         keyword_list = [
             "20250624_8b_new_ift_exp8_3epoch",
             "20250804_8b_LC_all_exp2p2_6",
-            "ALLaM-AI/ALLaM-7B-Instruct-preview"
+            "ALLaM-AI/ALLaM-7B-Instruct-preview",
         ]
         for keyword in keyword_list:
             if keyword.lower() in model_path.lower():
@@ -2527,18 +2530,17 @@ class VicunaArabicAdapter(BaseModelAdapter):
 
     def load_model(self, model_path: str, from_pretrained_kwargs: dict):
         # JAIS needs a different loading mechanism on our servers
-        if model_path.count('/') >= 2: # i.e. local path
+        if model_path.count("/") >= 2:  # i.e. local path
             tokenizer = AutoTokenizer.from_pretrained(
-                    model_path,
-                    use_fast=False,
-                    padding_side="left",
+                model_path,
+                use_fast=False,
+                padding_side="left",
             )
 
             if "torch_dtype" in from_pretrained_kwargs:
                 from_pretrained_kwargs.pop("torch_dtype")
             model = AutoModelForCausalLM.from_pretrained(
-                model_path,
-                **from_pretrained_kwargs
+                model_path, **from_pretrained_kwargs
             )
             return model, tokenizer
         else:
@@ -2546,6 +2548,7 @@ class VicunaArabicAdapter(BaseModelAdapter):
 
     def get_default_conv_template(self, model_path: str) -> Conversation:
         return get_conv_template("raw")
+
 
 # Note: the registration order matters.
 # The one registered earlier has a higher matching priority.
